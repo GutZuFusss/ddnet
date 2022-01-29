@@ -2414,7 +2414,13 @@ void CGameClient::UpdateRenderedCharacters()
 			Client()->IntraGameTick(g_Config.m_ClDummy));
 		vec2 Pos = UnpredPos;
 
-		if(Predict() && (i == m_Snap.m_LocalClientID || (AntiPingPlayers() && !IsOtherTeam(i))))
+		// hack because kog does not send the DDNetCharacter NetObj. this is of course not acceptable.
+		// usually we would just use m_Snap.m_aCharacters[i].m_ExtendedData.m_FreezeEnd
+		CServerInfo ServerInfo;
+		Client()->GetServerInfo(&ServerInfo);
+		bool IsFrozen = IsDDNet(&ServerInfo) && m_Snap.m_aCharacters[i].m_Cur.m_Weapon == WEAPON_NINJA;
+
+		if(Predict() && (i == m_Snap.m_LocalClientID || (AntiPingPlayers() && !IsOtherTeam(i) && (IsFrozen || g_Config.m_ClAntiPingPlayers != 2))))
 		{
 			m_aClients[i].m_Predicted.Write(&m_aClients[i].m_RenderCur);
 			m_aClients[i].m_PrevPredicted.Write(&m_aClients[i].m_RenderPrev);
