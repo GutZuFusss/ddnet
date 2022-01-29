@@ -1258,6 +1258,14 @@ void CGameClient::OnNewSnapshot()
 						if(m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Tick)
 							Evolve(&m_Snap.m_aCharacters[Item.m_ID].m_Cur, Client()->GameTick(g_Config.m_ClDummy));
 
+						if(m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Direction != m_Snap.m_aCharacters[Item.m_ID].m_Prev.m_Direction ||
+							m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_HookState != m_Snap.m_aCharacters[Item.m_ID].m_Prev.m_HookState ||
+							m_Snap.m_aCharacters[Item.m_ID].m_Cur.m_Jumped != m_Snap.m_aCharacters[Item.m_ID].m_Prev.m_Jumped)
+						{
+							m_aClients[Item.m_ID].m_LastMovementInputChange = Client()->GameTick(g_Config.m_ClDummy); // didnt look into it, but this could cause problems on dummy toggle
+						}
+
+
 						m_aClients[Item.m_ID].m_Snapped = *((const CNetObj_Character *)pData);
 						m_aClients[Item.m_ID].m_Evolved = m_Snap.m_aCharacters[Item.m_ID].m_Cur;
 					}
@@ -2416,11 +2424,13 @@ void CGameClient::UpdateRenderedCharacters()
 
 		// hack because kog does not send the DDNetCharacter NetObj. this is of course not acceptable.
 		// usually we would just use m_Snap.m_aCharacters[i].m_ExtendedData.m_FreezeEnd
+		// also m_LastMovementInputChange should not be in CClientData
 		CServerInfo ServerInfo;
 		Client()->GetServerInfo(&ServerInfo);
-		bool IsFrozen = IsDDNet(&ServerInfo) && m_Snap.m_aCharacters[i].m_Cur.m_Weapon == WEAPON_NINJA;
+		bool InpTickThresholdPassed = m_aClients[i].m_LastMovementInputChange + Client()->GameTickSpeed() * 1 < Client()->GameTick(g_Config.m_ClDummy); // hard coded a second for now
+		bool InputQuiet = IsDDNet(&ServerInfo) && (m_Snap.m_aCharacters[i].m_Cur.m_Weapon == WEAPON_NINJA  || InpTickThresholdPassed);
 
-		if(Predict() && (i == m_Snap.m_LocalClientID || (AntiPingPlayers() && !IsOtherTeam(i) && (IsFrozen || g_Config.m_ClAntiPingPlayers != 2))))
+		if(Predict() && (i == m_Snap.m_LocalClientID || (AntiPingPlayers() && !IsOtherTeam(i) && (InputQuiet || g_Config.m_ClAntiPingPlayers != 2))))
 		{
 			m_aClients[i].m_Predicted.Write(&m_aClients[i].m_RenderCur);
 			m_aClients[i].m_PrevPredicted.Write(&m_aClients[i].m_RenderPrev);

@@ -375,6 +375,9 @@ public:
 		bool m_Friend;
 		bool m_Foe;
 
+		// used to tweak antiping by tracking inputs that affect characters position
+		int m_LastMovementInputChange;
+
 		int m_AuthLevel;
 		bool m_Afk;
 		bool m_Paused;
